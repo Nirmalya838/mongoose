@@ -1,3 +1,8 @@
+Object.keys(require.cache).forEach(key => {
+  delete require.cache[key];
+});
+
+
 const path = require('path');
 
 const express = require('express');

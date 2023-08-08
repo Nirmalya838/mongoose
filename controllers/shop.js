@@ -42,17 +42,30 @@ exports.getIndex = (req, res, next) => {
 };
 
 exports.getCart = (req, res, next) => {
-  req.user
-    .getCart()
+
+  // Assuming req.user.cart.items contains product IDs
+  const productIds = req.user.cart.items.map(item => item.productId);
+
+  Product.find({ _id: { $in: productIds } })
     .then(products => {
+      console.log('After populate:', products); // Check the state of products after populating
+      const cartItems = req.user.cart.items.map(item => {
+        const product = products.find(prod => prod._id.toString() === item.productId.toString());
+        return {
+          product: product,
+          quantity: item.quantity
+        };
+      });
+
       res.render('shop/cart', {
-            path: '/cart',
-            pageTitle: 'Your Cart',
-            products: products
-          });
-        })
-        .catch(err => console.log(err));
-      };
+        path: '/cart',
+        pageTitle: 'Your Cart',
+        products: cartItems
+      });
+    })
+    .catch(err => console.log(err));
+};
+
 
 exports.postCart = (req, res, next) => {
   const prodId = req.body.productId;
