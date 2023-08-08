@@ -1,4 +1,5 @@
 const Product = require('../models/product');
+const mongoose= require('mongoose')
 
 exports.getProducts = (req, res, next) => {
   Product.find()
@@ -48,7 +49,7 @@ exports.getCart = (req, res, next) => {
 
   Product.find({ _id: { $in: productIds } })
     .then(products => {
-      console.log('After populate:', products); // Check the state of products after populating
+      //console.log('After populate:', products); 
       const cartItems = req.user.cart.items.map(item => {
         const product = products.find(prod => prod._id.toString() === item.productId.toString());
         return {
@@ -80,15 +81,29 @@ exports.postCart = (req, res, next) => {
 };
 
 exports.postCartDeleteProduct = (req, res, next) => {
-  const prodId = req.body.productId;
-  req.user
-    .deleteItemFromCart(prodId)
-   
+  console.log('Received POST request to delete item from cart:', req.body);
+  const productIds = req.user.cart.items.map(item => item.productId);
+
+  // Get the productId directly from req.body.productId
+  const productIdToDelete = req.body.productId;
+
+  Product.find({ _id: { $in: productIds } })
+    .then(products => {
+      const updatedCartItems = req.user.cart.items.filter(item => {
+        return item.productId.toString() !== productIdToDelete.toString();
+      });
+
+      req.user.cart.items = updatedCartItems;
+
+      return req.user.save();
+    })
     .then(result => {
+      console.log('Item deleted from cart:', result);
       res.redirect('/cart');
     })
     .catch(err => console.log(err));
 };
+
 
 exports.postOrder = (req, res, next) => {
   let fetchedCart;
