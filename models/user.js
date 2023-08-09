@@ -45,10 +45,10 @@ userSchema.methods.addToCart= function(product){
           
             
 }
-// userSchema.methods.deleteItemFromCart = function (productId) {
-//   const updatedCartItems = this.cart.items.filter(item => {
-//     return item.productId.toString() !== productId.toString();
-//   });
+userSchema.methods.clearCart = function (productId) {
+   this.cart= {items:[]};
+    return this.save();
+  }
 //   this.cart.items = updatedCartItems;
 //   return this.save()
 //   .then(savedUser => {

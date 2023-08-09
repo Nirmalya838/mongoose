@@ -1,5 +1,6 @@
 const Product = require('../models/product');
-const mongoose= require('mongoose')
+const Order = require('../models/order');
+
 
 exports.getProducts = (req, res, next) => {
   Product.find()
@@ -44,7 +45,6 @@ exports.getIndex = (req, res, next) => {
 
 exports.getCart = (req, res, next) => {
 
-  // Assuming req.user.cart.items contains product IDs
   const productIds = req.user.cart.items.map(item => item.productId);
 
   Product.find({ _id: { $in: productIds } })
@@ -83,8 +83,6 @@ exports.postCart = (req, res, next) => {
 exports.postCartDeleteProduct = (req, res, next) => {
   console.log('Received POST request to delete item from cart:', req.body);
   const productIds = req.user.cart.items.map(item => item.productId);
-
-  // Get the productId directly from req.body.productId
   const productIdToDelete = req.body.productId;
 
   Product.find({ _id: { $in: productIds } })
@@ -106,19 +104,34 @@ exports.postCartDeleteProduct = (req, res, next) => {
 
 
 exports.postOrder = (req, res, next) => {
-  let fetchedCart;
   req.user
-    .addOrder()
-     .then(result => {
+    .populate('cart.items.productId')
+    .then(user => {
+      const products = user.cart.items.map(i => {
+        return { quantity: i.quantity, product: { ...i.productId._doc } };
+      });
+      const order = new Order({
+        user: {
+          name: req.user.name,
+          userId: req.user._id
+        },
+        products: products,
+      });
+      return order.save();
+    })
+    .then(result => {
+      req.user.clearCart()
+      
+    })
+    .then(()=>{
       res.redirect('/orders');
     })
     .catch(err => console.log(err));
 };
 
 exports.getOrders = (req, res, next) => {
-  req.user
-    .getOrder()
-    .then(orders => {
+  Order.find({'user.userId':req.user._id})
+  .then(orders => {
       res.render('shop/orders', {
         path: '/orders',
         pageTitle: 'Your Orders',
